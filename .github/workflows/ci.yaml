@@ -12,6 +12,9 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       -
+        name: Checkout
+        uses: actions/checkout@v2
+      -
         name: Set up QEMU
         uses: docker/setup-qemu-action@v1
       -
@@ -25,24 +28,22 @@ jobs:
           password: ${{ secrets.DOCKERHUB_TOKEN }}
       - name: Environment Variable
         id: vars
-        run: echo "::set-output name=build_date::$(date '+%F %T') name=build_version::$(cat version)"
-
+        run: echo "::set-output name=build_version::$(cat ./version)"
       -
         name: Build and push
         id: docker_build
         uses: docker/build-push-action@v2
-        env:
-          BUILD_VERSION: ${{ steps.vars.outputs.version }}
-          BUILD_DATE: ${{ steps.vars.outputs.build_date }}
-          COMMIT_SHA1: ${{ github.sha }}
         with:
           context: .
           file: ./deploy/Dockerfile
+          platforms:  |
+            linux/arm
+            linux/arm64
+            linux/amd64
+          tags: |
+            finab/bark-server:latest
+            finab/bark-server:${{ steps.vars.outputs.build_version }}
           push: true
-          platforms: linux/arm,linux/arm64,linux/386,linux/amd64
-          tags: 
-            - "finab/bark-server:latest"
-            - "finab/bark-server:${{ steps.version.outputs.content }}"
       -
         name: Image digest
         run: echo ${{ steps.docker_build.outputs.digest }}
